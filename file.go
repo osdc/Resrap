@@ -13,7 +13,9 @@ func parseFile(filename string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() {
+		_ = file.Close()
+	}()
 
 	var statements []string
 	var current strings.Builder
@@ -47,7 +49,6 @@ func parseFile(filename string) ([]string, error) {
 
 type lang struct {
 	graph *syntaxGraph
-	nodes int
 }
 
 func newLang() lang {
@@ -63,14 +64,14 @@ func (l *lang) ParserFile(filename string) error {
 	}
 	gb := newGraphBuilder()
 	content := strings.Join(lines, "")
-	err = gb.start_generation(content)
+	err = gb.startGeneration(content)
 	l.graph = &gb.pars.graph
 	return err
 }
 
 func (l *lang) ParserString(data string) error {
 	gb := newGraphBuilder()
-	err := gb.start_generation(data)
+	err := gb.startGeneration(data)
 	l.graph = &gb.pars.graph
 	return err
 }

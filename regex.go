@@ -6,33 +6,37 @@ import (
 )
 
 type regexer struct {
-	cached_rex map[string]cacheRexState
+	cachedRex map[string]cacheRexState
 }
 
 func newRegexer() regexer {
-	return regexer{cached_rex: make(map[string]cacheRexState)}
+	return regexer{cachedRex: make(map[string]cacheRexState)}
 }
 
 type cacheRexState struct {
-	cumu_freq []float32
-	options   []rune
+	cumuFreq []float32
+	options  []rune
 }
 
 func (r *regexer) GenerateString(regex string, prn *prng) string {
+	state, ok := r.cachedRex[regex]
+	if !ok || len(state.cumuFreq) == 0 || len(state.options) == 0 {
+		return ""
+	}
 	size := prn.RandomInt(3, 4) // generate a size between 3 and 7
 	var sb strings.Builder
 
 	for i := 0; i < size; i++ {
 		x := prn.Random() // random float 0-1
-		idx := closestIndex(r.cached_rex[regex].cumu_freq, float32(x))
-		sb.WriteRune(r.cached_rex[regex].options[idx]) // use WriteRune instead of WriteByte
+		idx := closestIndex(state.cumuFreq, float32(x))
+		sb.WriteRune(state.options[idx]) // use WriteRune instead of WriteByte
 	}
 
 	return sb.String()
 }
 func (r *regexer) CacheRegex(regex string) {
 	tokens := r.ExpandClass(regex)
-	var biasarr []float32
+	biasarr := make([]float32, 0, len(tokens))
 	var sum float32
 	for _, token := range tokens {
 		bias := float32(r.Bias(token))
@@ -50,7 +54,7 @@ func (r *regexer) CacheRegex(regex string) {
 		cdf[i] = cum
 	}
 
-	r.cached_rex[regex] = cacheRexState{cumu_freq: cdf, options: tokens}
+	r.cachedRex[regex] = cacheRexState{cumuFreq: cdf, options: tokens}
 }
 
 // closestIndex finds the first index in cdf where cdf[idx] >= x
@@ -81,9 +85,9 @@ func (r *regexer) ExpandClass(class string) []rune {
 }
 
 // Bias returns an integer weight for a rune based on usage frequency
-func (k *regexer) Bias(r rune) int {
+func (r *regexer) Bias(c rune) int {
 	// Lowercase letters: frequency in English words (roughly)
-	switch unicode.ToLower(r) {
+	switch unicode.ToLower(c) {
 	case 'e':
 		return 12
 	case 'a', 'i', 'o':
@@ -99,17 +103,17 @@ func (k *regexer) Bias(r rune) int {
 	}
 
 	// Uppercase letters: slightly less likely than lowercase
-	if unicode.IsUpper(r) {
-		return k.Bias(unicode.ToLower(r)) / 2
+	if unicode.IsUpper(c) {
+		return r.Bias(unicode.ToLower(c)) / 2
 	}
 
 	// Digits: moderately common
-	if unicode.IsDigit(r) {
+	if unicode.IsDigit(c) {
 		return 3
 	}
 
 	// Underscore: quite common in identifiers
-	if r == '_' {
+	if c == '_' {
 		return 5
 	}
 

@@ -25,11 +25,11 @@ const (
 )
 
 type syntaxNode struct {
-	next    []nextoption //All options from here
-	cf      []float32    //Cumulative frequency of all the options
-	id      uint32       //The id of the node
+	next    []nextoption // All options from here
+	cf      []float32    // Cumulative frequency of all the options
+	id      uint32       // The id of the node
 	typ     nodeType
-	pointer uint32 //In case its a pointer type
+	pointer uint32 // In case its a pointer type
 }
 
 func (s *syntaxNode) AddEdgeNext(g *syntaxGraph, node *syntaxNode, probability float32) {
@@ -43,7 +43,6 @@ type syntaxGraph struct {
 	namemap      map[string]uint32
 	charmap      map[uint32]string
 	regexhandler regexer
-	prng         prng
 }
 
 func (s *syntaxGraph) GetNode(id uint32, typ nodeType) *syntaxNode {
@@ -61,11 +60,11 @@ func newSyntaxGraph() syntaxGraph {
 	}
 }
 func (s *syntaxGraph) Normalize() {
-	//We will even out all the children going through the whole graph
-	//And also create a cumulative frequency graph that will help in traversing
+	// We will even out all the children going through the whole graph
+	// And also create a cumulative frequency graph that will help in traversing
 	for _, node := range s.nodeRef {
-		//Extract the elements in a diff array
-		var CF []float32
+		// Extract the elements in a diff array
+		CF := make([]float32, 0, len(node.next))
 
 		var cf float32
 		var sum float32
@@ -74,14 +73,14 @@ func (s *syntaxGraph) Normalize() {
 			sum += n.probability
 		}
 		// Divide each element by the sum
-		for i, _ := range CF {
+		for i := range CF {
 			CF[i] = cf + CF[i]/sum
 
 			// convert it into a CF
 			cf = CF[i]
 		}
 		node.cf = CF
-		//Now we have a cool little CF Array Normalized to 1
+		// Now we have a cool little CF Array Normalized to 1
 		// When picking random values, we pick one between 0 and 1
 		// And then choose its closest value from the array
 		// For probability based selections
@@ -128,14 +127,12 @@ func (s *syntaxGraph) GraphWalk(prng *prng, start string, tokens int) string {
 
 		// move to next (randomly selected if multiple options)
 		if len(current.next) > 0 {
-
 			value := float32(prng.Random())
 			index := sort.Search(len(current.cf), func(i int) bool {
 				return current.cf[i] >= value
 			})
 
 			current = current.next[index].node
-
 		} else {
 			current = nil
 		}

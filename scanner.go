@@ -12,7 +12,6 @@ type scanner struct {
 	pos    int // current byte offset
 	width  int // width of last rune
 	currR  rune
-	lineno int
 	tokens []token
 }
 
@@ -22,6 +21,8 @@ func extracttokens(inp string) ([]token, []ScanError) {
 	return sc.scan()
 }
 
+// ScanError describes a scanning failure: the byte offset where it occurred
+// and a human-readable message.
 type ScanError struct {
 	Pos int
 	Msg string
@@ -55,12 +56,7 @@ func (s *scanner) backup() {
 	}
 }
 
-// return the current rune (last consumed by next)
-func (s *scanner) curr() rune {
-	return s.currR
-}
-
-func (s *scanner) scanDelimited(open, close rune, allowEscapes bool) (string, *ScanError) {
+func (s *scanner) scanDelimited(open, closeRune rune, _ bool) (string, *ScanError) {
 	start := s.pos
 	var buf string
 
@@ -69,7 +65,7 @@ func (s *scanner) scanDelimited(open, close rune, allowEscapes bool) (string, *S
 		if r == -1 {
 			return "", &ScanError{start, fmt.Sprintf("unterminated %q", open)}
 		}
-		if r == close {
+		if r == closeRune {
 			return buf, nil
 		}
 
@@ -156,7 +152,6 @@ func (s *scanner) scan() ([]token, []ScanError) {
 				if buff != "" {
 					s.tokens = append(s.tokens, token{0, identifier, buff})
 				}
-
 			}
 		}
 	}

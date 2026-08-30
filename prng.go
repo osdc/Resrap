@@ -19,7 +19,7 @@ func (p *prng) generateSeed() {
 	p.seed = seed
 }
 func (p *prng) nextPRN() uint64 {
-	//Using the XOR shift method for PRN generation
+	// Using the XOR shift method for PRN generation
 	p.number ^= p.number << 13
 	p.number ^= p.number >> 7
 	p.number ^= p.number << 17
@@ -33,21 +33,21 @@ func (p *prng) Random() float64 {
 	return float64(v) / (1 << 53) // normalize to [0,1)
 }
 
-// randomInt returns an int in [min, max)
-func (p *prng) RandomInt(min, max int) int {
-	if max <= min {
-		return min // avoid division by zero or negative range
+// randomInt returns an int in [low, high)
+func (p *prng) RandomInt(low, high int) int {
+	if high <= low {
+		return low // avoid division by zero or negative range
 	}
 	r := p.Random()
-	return min + int(r*float64(max-min))
+	return low + int(r*float64(high-low))
 }
 
 func newPRNG(seed uint64) prng {
-	prng := prng{}
+	p := prng{}
 	if seed == 0 {
-		prng.generateSeed()
+		p.generateSeed()
 	} else {
-		prng.setSeed(seed)
+		p.setSeed(seed)
 	}
-	return prng
+	return p
 }

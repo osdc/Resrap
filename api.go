@@ -1,3 +1,6 @@
+// Package resrap is a seedable, grammar-based code snippet generator.
+// Instead of parsing code, it generates code from formal grammars (ABNF-style),
+// producing endless, realistic-looking snippets.
 package resrap
 
 import "os"
@@ -20,11 +23,14 @@ func NewResrap() *Resrap {
 // name: a unique identifier for this grammar (e.g., "C"), should be in ABNF format(Check osdc/resrap for more info on that).
 // Returns error generated while parsing
 func (r *Resrap) ParseGrammar(name, grammar string) error {
-	lang := newLang()
-	err := lang.ParserString(grammar)
-	r.languageGraph[name] = lang
+	l := newLang()
+	err := l.ParserString(grammar)
+	if err != nil {
+		return err
+	}
+	r.languageGraph[name] = l
 	r.languageGraph[name].graph.Normalize()
-	return err
+	return nil
 }
 
 // ParseGrammarFile parses a grammar from a file and stores it under the given name.
@@ -32,30 +38,41 @@ func (r *Resrap) ParseGrammar(name, grammar string) error {
 // location: path to the grammar file.
 // Returns error generated while parsing
 func (r *Resrap) ParseGrammarFile(name, location string) error {
-	lang := newLang()
-	err := lang.ParserFile(location)
-	r.languageGraph[name] = lang
+	l := newLang()
+	err := l.ParserFile(location)
+	if err != nil {
+		return err
+	}
+	r.languageGraph[name] = l
 	r.languageGraph[name].graph.Normalize()
 
-	return err
+	return nil
 }
 
 // GenerateRandom generates content from the grammar identified by 'name'.
-// starting_node: the starting heading in the grammar for generation.
+// startingNode: the starting heading in the grammar for generation.
 // Returns a string containing the generated content.
 // The generation is non-deterministic (random).
-func (r *Resrap) GenerateRandom(name, starting_node string, tokens int) string {
+func (r *Resrap) GenerateRandom(name, startingNode string, tokens int) string {
 	prng := newPRNG(0)
-	return r.languageGraph[name].graph.GraphWalk(&prng, starting_node, tokens)
+	return r.generate(name, startingNode, &prng, tokens)
 }
 
 // GenerateWithSeeded generates content from the grammar identified by 'name'.
-// starting_node: the starting symbol in the grammar for generation.
+// startingNode: the starting symbol in the grammar for generation.
 // seed: a numeric seed to make generation deterministic.
 // Returns a string containing the generated content.
-func (r *Resrap) GenerateWithSeeded(name, starting_node string, seed uint64, tokens int) string {
+func (r *Resrap) GenerateWithSeeded(name, startingNode string, seed uint64, tokens int) string {
 	prng := newPRNG(seed)
-	return r.languageGraph[name].graph.GraphWalk(&prng, starting_node, tokens)
+	return r.generate(name, startingNode, &prng, tokens)
+}
+
+func (r *Resrap) generate(name, startingNode string, prng *prng, tokens int) string {
+	l, ok := r.languageGraph[name]
+	if !ok || l.graph == nil {
+		return ""
+	}
+	return l.graph.GraphWalk(prng, startingNode, tokens)
 }
 
 // GenerateCodebase takes a config like one below  and generates a complete codebase
@@ -67,8 +84,8 @@ func (r *Resrap) GenerateWithSeeded(name, starting_node string, seed uint64, tok
 //	    c[5x1000 *.c]
 //	more/
 //	  sql[10x100 *.sql]
-func (r *Resrap) GenerateCodebase(config_loc, target string) error {
-	config, err := os.ReadFile(config_loc)
+func (r *Resrap) GenerateCodebase(configLoc, target string) error {
+	config, err := os.ReadFile(configLoc)
 	if err != nil {
 		return err
 	}
@@ -76,6 +93,5 @@ func (r *Resrap) GenerateCodebase(config_loc, target string) error {
 	if err != nil {
 		return err
 	}
-	parent.generate_node(r, target)
-	return nil
+	return parent.generateNode(r, target)
 }

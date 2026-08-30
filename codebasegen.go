@@ -8,29 +8,30 @@ import (
 	"strings"
 )
 
-type file_type int
+type fileType int
 
+// Node types used in a directory tree.
 const (
-	DIR file_type = iota
+	DIR fileType = iota
 	FILE
 )
 
-// node describes either a directory or file entry.
-type node struct {
+// Node describes either a directory or file entry.
+type Node struct {
 	Name       string
-	Type       file_type
+	Type       fileType
 	Pattern    string // E.g., "code_*.c"
 	Count      int    // Number of files (e.g., 10)
 	TokenCount int    // Tokens per file (e.g., 20)
 	FileType   string // Language/type identifier (e.g., "C", "sql")
-	Children   []*node
+	Children   []*Node
 }
 
 // ParseDSL parses the directory DSL into a tree.
-func ParseDSL(input string) (*node, error) {
+func ParseDSL(input string) (*Node, error) {
 	lines := strings.Split(input, "\n")
-	var root = &node{Name: "", Type: DIR}
-	stack := []*node{root}
+	var root = &Node{Name: "", Type: DIR}
+	stack := []*Node{root}
 	indentStack := []int{-1}
 
 	for lineNum, line := range lines {
@@ -41,7 +42,7 @@ func ParseDSL(input string) (*node, error) {
 		indent := len(line) - len(strings.TrimLeft(line, " "))
 		name := strings.TrimSpace(line)
 
-		var n node
+		var n Node
 
 		// Check if it's a file specification: name[count x tokens pattern]
 		if i := strings.Index(name, "["); i != -1 && strings.HasSuffix(name, "]") {
@@ -93,13 +94,13 @@ func ParseDSL(input string) (*node, error) {
 			return nil, fmt.Errorf("line %d: indentation error", lineNum+1)
 		}
 
-		node := &n
+		newNode := &n
 		parent := stack[len(stack)-1]
-		parent.Children = append(parent.Children, node)
+		parent.Children = append(parent.Children, newNode)
 
 		// Only directories can have children
 		if n.Type == DIR {
-			stack = append(stack, node)
+			stack = append(stack, newNode)
 			indentStack = append(indentStack, indent)
 		}
 	}
@@ -108,12 +109,12 @@ func ParseDSL(input string) (*node, error) {
 }
 
 // GenerateStructure creates the directory structure and files
-func (n *node) GenerateStructure(r *Resrap, root string) error {
-	return n.generate_node(r, root)
+func (n *Node) GenerateStructure(r *Resrap, root string) error {
+	return n.generateNode(r, root)
 }
 
 // Recursive function to create directories and generate files
-func (n *node) generate_node(r *Resrap, root string) error {
+func (n *Node) generateNode(r *Resrap, root string) error {
 	loc := root
 	if n.Name != "" {
 		loc = filepath.Join(root, n.Name)
@@ -127,7 +128,7 @@ func (n *node) generate_node(r *Resrap, root string) error {
 
 		// Recurse for children
 		for _, child := range n.Children {
-			if err := child.generate_node(r, loc); err != nil {
+			if err := child.generateNode(r, loc); err != nil {
 				return err
 			}
 		}

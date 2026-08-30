@@ -8,13 +8,13 @@ import (
 )
 
 type parser struct {
-	func_ptr     uint32
-	print_ptr    uint32
-	name_map     map[string]uint32  //Maps func names to their ids
-	rev_name_map map[uint32]string  //Help in debugging
-	def_check    map[uint32]bool    //To check if a function exists
-	charmap      map[uint32]string  //To store the print values corresponding to ids
-	inter_rep    map[uint32][]token //Intermediate Representation
+	funcPtr      uint32
+	printPtr     uint32
+	nameMap      map[string]uint32  // Maps func names to their ids
+	revNameMap   map[uint32]string  // Help in debugging
+	defCheck     map[uint32]bool    // To check if a function exists
+	charmap      map[uint32]string  // To store the print values corresponding to ids
+	interRep     map[uint32][]token // Intermediate Representation
 	tokens       []token
 	errors       []error
 	index        int
@@ -22,17 +22,17 @@ type parser struct {
 	regexhandler regexer
 }
 
-func new_parser() parser {
+func newParser() parser {
 	return parser{
-		print_ptr: math.MaxInt32, // grows downward
-		func_ptr:  1000,          // IDs below 1000 reserved for core graph nodes
+		printPtr: math.MaxInt32, // grows downward
+		funcPtr:  1000,          // IDs below 1000 reserved for core graph nodes
 
 		// allocate maps to avoid nil panics
-		name_map:     make(map[string]uint32),
-		def_check:    make(map[uint32]bool),
+		nameMap:      make(map[string]uint32),
+		defCheck:     make(map[uint32]bool),
 		charmap:      make(map[uint32]string),
-		inter_rep:    make(map[uint32][]token),
-		rev_name_map: make(map[uint32]string),
+		interRep:     make(map[uint32][]token),
+		revNameMap:   make(map[uint32]string),
 		tokens:       []token{},
 		errors:       []error{},
 		graph:        newSyntaxGraph(),
@@ -40,13 +40,13 @@ func new_parser() parser {
 	}
 }
 
-func (i *parser) get_print_ptr() uint32 {
-	i.print_ptr--
-	return i.print_ptr
+func (i *parser) getPrintPtr() uint32 {
+	i.printPtr--
+	return i.printPtr
 }
-func (i *parser) get_func_ptr() uint32 {
-	i.func_ptr++
-	return i.func_ptr
+func (i *parser) getFuncPtr() uint32 {
+	i.funcPtr++
+	return i.funcPtr
 }
 func (i *parser) curr() token {
 	return i.tokens[i.index]
@@ -62,79 +62,77 @@ func (i *parser) expect(expected []tokenType, errmsg string) bool {
 	}
 	i.index++
 	return false
-
 }
-func (i *parser) get_index(name string) uint32 {
-	value, ok := i.name_map[name]
+
+func (i *parser) getIndex(name string) uint32 {
+	value, ok := i.nameMap[name]
 	if ok {
 		return value
 	}
-	value = i.get_func_ptr()
-	i.def_check[value] = false //tb set back to true in the subject, else remain false
-	i.name_map[name] = value
-	i.rev_name_map[value] = name
+	value = i.getFuncPtr()
+	i.defCheck[value] = false // tb set back to true in the subject, else remain false
+	i.nameMap[name] = value
+	i.revNameMap[value] = name
 	return value
 }
-func (i *parser) parse_grammar() {
+func (i *parser) parseGrammar() {
 	for i.index < len(i.tokens) {
-		i.parse_subject()
+		i.parseSubject()
 		if len(i.errors) > 0 {
-			return //Crash on errors for now
+			return // Crash on errors for now
 		}
 	}
 }
-func (i *parser) parse_subject() {
+func (i *parser) parseSubject() {
 	subject := i.curr()
 
-	if i.expect([]tokenType{identifier}, "Expected Subject at start of statement") {
+	if i.expect([]tokenType{identifier}, "expected subject at start of statement") {
 		return
 	}
-	if i.expect([]tokenType{colon}, "Expected Colon after Subject") {
+	if i.expect([]tokenType{colon}, "expected colon after subject") {
 		return
 	}
-	id := i.get_index(subject.text)
-	if i.def_check[id] { //If map is already set to true
-		i.errors = append(i.errors, fmt.Errorf("Multiple definitions for %s", subject.text))
+	id := i.getIndex(subject.text)
+	if i.defCheck[id] { // If map is already set to true
+		i.errors = append(i.errors, fmt.Errorf("multiple definitions for %s", subject.text))
 	}
 
-	i.def_check[id] = true
+	i.defCheck[id] = true
 	startnode := i.graph.GetNode(uint32(start), start)
 	startnode.AddEdgeNext(&i.graph, i.graph.GetNode(id, header), 1)
-	//Send here only if current is col else crash code
+	// Send here only if current is col else crash code
 	if i.match(i.tokens[i.index-1].typ, []tokenType{colon}) {
-		i.parse_rules(id, false)
+		i.parseRules(id, false)
 	} else {
 		return
 	}
-
 }
 
-func (i *parser) parse_rules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode) {
-
+func (i *parser) parseRules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode) {
 	rootnode := i.graph.GetNode(root, idk)
 	bufferNode := rootnode
 	endNode := i.graph.GetNode(uint32(end), end)
 	var startBuffer *syntaxNode
-	if isDeep { //Means called from a backet so a pseudo end branch
-		endNode = i.graph.GetNode(i.get_func_ptr(), end)
+	if isDeep { // Means called from a backet so a pseudo end branch
+		endNode = i.graph.GetNode(i.getFuncPtr(), end)
 	}
 	for {
 		switch i.curr().typ {
 		case identifier:
-			//Means its a reference to a different Subject(presumably)
-			pointerid := i.get_index(i.tokens[i.index].text)
-			node := i.graph.GetNode(i.get_func_ptr(), pointer)
+			// Means its a reference to a different Subject(presumably)
+			pointerid := i.getIndex(i.tokens[i.index].text)
+			node := i.graph.GetNode(i.getFuncPtr(), pointer)
 			node.pointer = pointerid
-			bufferNode.AddEdgeNext(&i.graph, node, i.get_probability())
-			jumpNode := i.graph.GetNode(i.get_func_ptr(), jump)
+			bufferNode.AddEdgeNext(&i.graph, node, i.getProbability())
+			jumpNode := i.graph.GetNode(i.getFuncPtr(), jump)
 			node.AddEdgeNext(&i.graph, jumpNode, 1)
 			startBuffer = bufferNode
 			bufferNode = jumpNode
-			//Basically just add the word and next to it its jump node
+			// Basically just add the word and next to it its jump node
 			// So when generating, the control will pass to the node at the location and save the exit in a stack
 			// Then when it reached its local collapse node, then the control will automatically come back to default
 		case character, regex:
-			index := i.get_print_ptr()
+			index := i.getPrintPtr()
 			i.charmap[index] = i.tokens[i.index].text
 			var leafnode *syntaxNode
 			if i.tokens[i.index].typ == character {
@@ -143,45 +141,45 @@ func (i *parser) parse_rules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode
 				leafnode = i.graph.GetNode(index, rx)
 				i.regexhandler.CacheRegex(i.curr().text)
 			}
-			bufferNode.AddEdgeNext(&i.graph, leafnode, i.get_probability())
-			jumpNode := i.graph.GetNode(i.get_func_ptr(), jump)
+			bufferNode.AddEdgeNext(&i.graph, leafnode, i.getProbability())
+			jumpNode := i.graph.GetNode(i.getFuncPtr(), jump)
 			leafnode.AddEdgeNext(&i.graph, jumpNode, 1)
 			startBuffer = bufferNode
 			bufferNode = jumpNode
 		case colon:
-			//Colon is not allowed here
-			i.errors = append(i.errors, fmt.Errorf("Missing Semicolon"))
+			// Colon is not allowed here
+			i.errors = append(i.errors, fmt.Errorf("missing semicolon"))
 			return nil, nil
 		case maybe:
-			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.get_probability()) //An option to skip to the end
+			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.getProbability()) // An option to skip to the end
 		case oneormore:
-			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.get_probability()) //An option to go to the start
+			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.getProbability()) // An option to go to the start
 		case anyno:
-			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.get_probability()) //Well both of them combined
-			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.get_probability())
+			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.getProbability()) // Well both of them combined
+			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.getProbability())
 		case option:
-			//in Case of an option, no need to really do anything, just set the buffer settings back to the parent
-			bufferNode.AddEdgeNext(&i.graph, endNode, i.get_probability())
+			// In case of an option, no need to really do anything, just set the buffer settings back to the parent
+			bufferNode.AddEdgeNext(&i.graph, endNode, i.getProbability())
 			bufferNode = rootnode
 			startBuffer = nil
 		case padding:
 			bufferNode.AddEdgeNext(&i.graph, endNode, 1)
 			if isDeep {
-				i.errors = append(i.errors, fmt.Errorf("Stray '('"))
+				i.errors = append(i.errors, fmt.Errorf("stray '('"))
 			}
 			i.index++
-			return nil, nil //End of this statement
+			return nil, nil // End of this statement
 		case bracopen:
 			i.index++
-			startBuffer, bufferNode = i.parse_rules(bufferNode.id, true)
+			startBuffer, bufferNode = i.parseRules(bufferNode.id, true)
 		case bracclose:
 			if isDeep {
 				bufferNode.AddEdgeNext(&i.graph, endNode, 1)
 				return rootnode, endNode
 			}
-			i.errors = append(i.errors, fmt.Errorf("Stray ')' found"))
+			i.errors = append(i.errors, fmt.Errorf("stray ')' found"))
 		case infinite:
-			//Now at the end it will loop back to this case
+			// Now at the end it will loop back to this case
 			endNode.AddEdgeNext(&i.graph, startBuffer, 1)
 		default:
 			continue
@@ -189,7 +187,7 @@ func (i *parser) parse_rules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode
 		i.index++
 	}
 }
-func (i *parser) get_probability() float32 {
+func (i *parser) getProbability() float32 {
 	i.index++
 	if i.tokens[i.index].typ == probability {
 		num := i.tokens[i.index].text
@@ -200,22 +198,22 @@ func (i *parser) get_probability() float32 {
 			return 0
 		}
 		if numf < 0 {
-			i.errors = append(i.errors, fmt.Errorf("Negative Probability Found"))
+			i.errors = append(i.errors, fmt.Errorf("negative probability found"))
 			return 0
 		}
 		return float32(numf)
 	}
-	i.index-- //Reverting
+	i.index-- // Reverting
 	return 0.5
 }
-func (p *parser) ValidateGraph() []error {
-	if len(p.errors) > 0 {
+func (i *parser) ValidateGraph() []error {
+	if len(i.errors) > 0 {
 		return nil
 	}
 	var errors []error
-	for key, val := range p.def_check {
+	for key, val := range i.defCheck {
 		if !val {
-			errors = append(errors, fmt.Errorf("Definition of '%s' not found", p.rev_name_map[key]))
+			errors = append(errors, fmt.Errorf("definition of '%s' not found", i.revNameMap[key]))
 		}
 	}
 	return errors

@@ -1,0 +1,49 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+
+linters:
+  default: standard
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - revive
+    - unconvert
+    - unparam
+    - gocritic
+    - bodyclose
+    - noctx
+    - prealloc
+    - whitespace
+    - nakedret
+  settings:
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment
+    gocritic:
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - errcheck
+          - unparam
+          - gocritic
+      # Public API naming is kept for backward compatibility.
+      - path: apiMT\.go
+        linters:
+          - revive
+        text: "var-naming: struct field Id|exported: type name will be used as resrap.ResrapMT"
