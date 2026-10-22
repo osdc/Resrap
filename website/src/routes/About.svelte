@@ -1,5 +1,5 @@
-<section id="about" class="overflow-y-auto p-4 lg:p-8 text-white">
-	<div class="mx-auto max-w-4xl">
+<section id="about" class="px-6 py-16 text-white lg:px-12 lg:py-24">
+	<div class="mx-auto max-w-5xl">
 		<h1 class="mb-4 text-2xl lg:text-4xl font-bold text-[#00add8]">What is Resrap?</h1>
 		<p class="mb-6 lg:mb-8 text-base lg:text-lg leading-relaxed text-gray-300">
 			Resrap is a <strong class="text-[#00add8]"

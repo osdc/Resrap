@@ -3,7 +3,7 @@
 	import { loadWasm } from '$lib/wasm.js';
 	import { samplegrammer } from '$lib/template';
 
-	import materialPalenight from 'svelte-highlight/styles/material-palenight';
+	import tokyoNight from 'svelte-highlight/styles/tokyo-night-dark';
 	import c from 'svelte-highlight/languages/c';
 	import Highlight from 'svelte-highlight';
 
@@ -96,9 +96,9 @@
 </script>
 
 <svelte:head>
-	{@html materialPalenight}
+	{@html tokyoNight}
 </svelte:head>
-<div class="flex flex-col p-4 lg:p-8 pt-8 lg:pt-20 pb-8 lg:pb-20 text-white h-auto lg:min-h-screen">
+<div class="flex h-full w-full flex-col justify-center text-white">
 	{#if status === 'loading'}
 		<div class="flex h-96 items-center justify-center">
 			<div class="flex items-center gap-3">
@@ -121,7 +121,7 @@
 		<div class="flex flex-col">
 			<div class="flex flex-col">
 				<div
-					class="relative h-96 lg:h-[32rem] overflow-hidden rounded-lg border border-gray-700 bg-[#292d3e] p-3 lg:p-6"
+					class="code-theme relative h-96 lg:h-[32rem] overflow-hidden rounded-lg border border-gray-700 bg-[#0b1020] p-3 lg:p-6"
 				>
 					<div
 						class="h-full overflow-y-auto font-mono text-xs lg:text-sm leading-relaxed whitespace-pre-wrap text-gray-100"

@@ -3,7 +3,7 @@
 	const pkgUrl = 'https://pkg.go.dev/github.com/osdc/resrap';
 </script>
 
-<div class="flex flex-col justify-between p-4 lg:p-8 text-white h-auto lg:min-h-screen">
+<div class="flex h-full flex-col justify-center text-white">
 	<div class="flex flex-1 flex-col justify-center">
 		<div class="mb-8 lg:mb-12">
 			<h1 class="headfont mb-2 lg:mb-4 text-3xl lg:text-6xl leading-tight font-bold text-[#00add8]">Resrap</h1>
@@ -17,12 +17,12 @@
 			</div>
 		</div>
 
-		<div class="mb-6 lg:mb-8 flex flex-col sm:flex-row gap-3 lg:gap-4">
+		<div class="mb-6 lg:mb-8 grid grid-cols-1 sm:grid-cols-3 gap-3 lg:gap-4">
 			<a
 				href={githubUrl}
 				target="_blank"
 				rel="noopener noreferrer"
-				class="flex items-center justify-center gap-2 rounded-lg bg-[#00add8] px-4 lg:px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-[#0099c7]"
+				class="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-[#00add8] px-4 lg:px-6 py-3 font-semibold text-white transition-colors duration-200 hover:bg-[#0099c7]"
 			>
 				<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
 					<path
@@ -33,7 +33,7 @@
 			</a>
 			<a
 				href="#try"
-				class="flex items-center justify-center gap-2 rounded-lg border-2 border-[#00add8] px-4 lg:px-6 py-3 font-semibold text-[#00add8] transition-all duration-200 hover:bg-[#00add8] hover:text-white"
+				class="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border-2 border-[#00add8] px-4 lg:px-6 py-3 font-semibold text-[#00add8] transition-all duration-200 hover:bg-[#00add8] hover:text-white"
 			>
 				<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
 					<path d="M8 5V16L12 13L16 16V5H8Z" />
@@ -42,14 +42,14 @@
 			</a>
 			<a
 				href="/Templates"
-				class="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-600 px-4 lg:px-6 py-3 font-semibold text-gray-300 transition-all duration-200 hover:border-[#00add8] hover:text-[#00add8]"
+				class="flex items-center justify-center gap-2 whitespace-nowrap rounded-lg border-2 border-gray-600 px-4 lg:px-6 py-3 font-semibold text-gray-300 transition-all duration-200 hover:border-[#00add8] hover:text-[#00add8]"
 			>
 				Language Templates
 			</a>
 		</div>
 	</div>
 
-	<div class="flex flex-col gap-2 lg:gap-3 mt-8 lg:mt-0">
+	<div class="mt-8 lg:mt-10 flex flex-col gap-2 lg:gap-3">
 		<a
 			href={githubUrl}
 			target="_blank"

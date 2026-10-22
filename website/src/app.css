@@ -43,3 +43,17 @@
 		word-break: break-all !important;
 	}
 }
+
+/* Tokyo Night syntax colours, with the page background showing through. */
+.code-theme .hljs,
+.code-theme pre code.hljs {
+	background: transparent !important;
+}
+
+.code-theme pre code.hljs {
+	padding: 0 !important;
+}
+
+.code-theme .hljs {
+	color: #a9b1d6;
+}

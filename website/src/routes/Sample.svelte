@@ -63,8 +63,8 @@
 		executionTime > 0 ? (tokensGenerated / (executionTime / 1000)).toFixed(2) : 0;
 </script>
 
-<div class="flex min-h-screen flex-col justify-center">
-	<main id="try" class="p-4 lg:p-8 text-center text-white">
+<div class="px-6 py-16 lg:px-12 lg:py-24">
+	<main id="try" class="mx-auto w-full max-w-5xl text-center text-white">
 		<div class="mb-6 lg:mb-8">
 			<h1 class="mb-2 text-2xl lg:text-4xl font-bold text-[#00add8]">Try it yourself</h1>
 			<p class="text-base lg:text-lg text-gray-400">Test Resrap's power directly in your browser</p>
@@ -92,7 +92,7 @@
 		{/if}
 
 		{#if status === 'ready'}
-			<div class="flex h-full flex-col gap-6 lg:gap-8 xl:flex-row">
+			<div class="flex h-full flex-col gap-6 lg:flex-row lg:gap-8">
 				<div class="flex flex-1 flex-col gap-4">
 					<div class="flex flex-col gap-2">
 						<label class="text-base lg:text-lg font-semibold text-gray-300 text-left">ABNF Grammar</label>
