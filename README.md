@@ -64,7 +64,7 @@ float password = 1024.13 - (13.7);
 ## Installation
 
 ```bash
-go get github.com/osdc/resrap@v1.1.0
+go get github.com/osdc/resrap@v1.2.0
 ```
 
 ---

@@ -132,7 +132,14 @@ func (i *parser) parseRules(root uint32, isDeep bool, endNode *syntaxNode) (*syn
 	rootnode := i.graph.GetNode(root, idk)
 	bufferNode := rootnode
 	if endNode == nil {
-		endNode = i.graph.GetNode(i.getFuncPtr(), end)
+		typ := end
+		if isDeep {
+			// Parenthesised groups are inline constructs, not rule calls.
+			// Using the rule end node type here made the walk return to the
+			// caller and silently skip tokens that followed the group.
+			typ = groupEnd
+		}
+		endNode = i.graph.GetNode(i.getFuncPtr(), typ)
 	}
 	var startBuffer *syntaxNode
 	for i.index < len(i.tokens) {
@@ -221,8 +228,14 @@ func (i *parser) parseRules(root uint32, isDeep bool, endNode *syntaxNode) (*syn
 				i.errHere("'^' has nothing to loop")
 				return nil, nil
 			}
-			// Now at the end it will loop back to this case
-			endNode.AddEdgeNext(&i.graph, startBuffer, 1)
+			// '^' repeats the preceding construct in place. The explicit loop
+			// node lets complete generation stop at the budget and then emit
+			// whatever follows the loop exactly once.
+			loopNode := i.graph.GetNode(i.getFuncPtr(), loop)
+			loopNode.pointer = startBuffer.id
+			bufferNode.AddEdgeNext(&i.graph, loopNode, 1)
+			bufferNode = loopNode
+			startBuffer = nil
 		case probability:
 			i.errHere("probability '<...>' must follow a token")
 			return nil, nil

@@ -9,52 +9,17 @@
 
 	let startpoint = 'program';
 	let seed = 42;
-	let tokenlen = 10000;
-
-	type TemplateInfo = {
-		name: string;
-		language: string;
-		description: string;
-		grammar: string;
-	};
-
-	let templates: TemplateInfo[] = [];
-	let selectedTemplate = '';
-	let templatesError = '';
+	let tokenlen = 150;
 
 	let executionTime = 0;
 	let tokensGenerated = 0;
 	let isGenerating = false;
 	let lastGeneratedAt: string | null = null;
 
-	function loadTemplates() {
-		if (!globalThis.getTemplates) {
-			templatesError = 'Template list is unavailable';
-			return;
-		}
-		try {
-			templates = JSON.parse(globalThis.getTemplates());
-			const fallback = templates.find((t) => t.name === 'cpp') ?? templates[0];
-			if (fallback) {
-				chooseTemplate(fallback);
-			}
-		} catch (error) {
-			templatesError = 'Could not load templates: ' + (error as Error).message;
-		}
-	}
-
-	function chooseTemplate(template: TemplateInfo) {
-		selectedTemplate = template.name;
-		grammar = template.grammar;
-		startpoint = 'program';
-		result = '';
-	}
-
 	onMount(async () => {
 		try {
 			await loadWasm();
 			status = 'ready';
-			loadTemplates();
 		} catch (error) {
 			console.error('Failed to load WASM:', error);
 			status = 'error';
@@ -103,6 +68,9 @@
 		<div class="mb-6 lg:mb-8">
 			<h1 class="mb-2 text-2xl lg:text-4xl font-bold text-[#00add8]">Try it yourself</h1>
 			<p class="text-base lg:text-lg text-gray-400">Test Resrap's power directly in your browser</p>
+			<a href="/Templates" class="mt-3 inline-block text-sm font-semibold text-[#00add8] hover:underline">
+				Browse the full language templates →
+			</a>
 		</div>
 
 		{#if status === 'loading'}
@@ -124,45 +92,6 @@
 		{/if}
 
 		{#if status === 'ready'}
-			<section class="mb-6 lg:mb-8 text-left">
-				<div class="mb-3 flex flex-wrap items-end justify-between gap-2">
-					<div>
-						<h2 class="text-lg lg:text-xl font-semibold text-gray-200">Built-in templates</h2>
-						<p class="text-sm text-gray-500">
-							Every template is embedded in the Go/WASM binary. Pick one to load its grammar.
-						</p>
-					</div>
-					{#if selectedTemplate}
-						<span class="rounded-full border border-[#00add8]/40 bg-[#00add8]/10 px-3 py-1 text-xs font-mono text-[#00add8]">
-							{selectedTemplate}
-						</span>
-					{/if}
-				</div>
-
-				{#if templatesError}
-					<p class="text-sm text-red-400">{templatesError}</p>
-				{:else if templates.length === 0}
-					<p class="text-sm text-gray-500">Loading templates...</p>
-				{:else}
-					<div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-						{#each templates as template (template.name)}
-							<button
-								type="button"
-								on:click={() => chooseTemplate(template)}
-								class="rounded-lg border p-2.5 text-left transition-colors {selectedTemplate === template.name
-									? 'border-[#00add8] bg-[#00add8]/10'
-									: 'border-gray-700 bg-gray-900 hover:border-gray-500'}"
-							>
-								<span class="block text-sm font-semibold text-gray-100">{template.language}</span>
-								<span class="mt-0.5 block font-mono text-[10px] uppercase tracking-wide text-gray-500">
-									{template.name}
-								</span>
-							</button>
-						{/each}
-					</div>
-				{/if}
-			</section>
-
 			<div class="flex h-full flex-col gap-6 lg:gap-8 xl:flex-row">
 				<div class="flex flex-1 flex-col gap-4">
 					<div class="flex flex-col gap-2">

@@ -317,3 +317,19 @@ func TestNoPanicOnRandomGrammarInput(t *testing.T) {
 func writeFile(path, content string) error {
 	return os.WriteFile(path, []byte(content), 0o644)
 }
+
+func TestOptionalGroupKeepsFollowingTokens(t *testing.T) {
+	r := NewResrap()
+	grammar := "program:statement^;\nstatement:'SELECT ' value (' WHERE ' condition)? ';\\n';\ncondition:'x = ' value;\nvalue:'NULL'|'A';"
+	if err := r.ParseGrammar("x", grammar); err != nil {
+		t.Fatal(err)
+	}
+	for seed := uint64(1); seed <= 25; seed++ {
+		out := r.GenerateCompleteWithSeeded("x", "program", seed, 20)
+		for _, line := range strings.Split(strings.TrimSpace(out), "\n") {
+			if !strings.HasSuffix(line, ";") {
+				t.Fatalf("seed %d: optional group swallowed the statement delimiter: %q\n%s", seed, line, out)
+			}
+		}
+	}
+}

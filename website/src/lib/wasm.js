@@ -2,61 +2,48 @@ import './wasm_exec.js';
 
 let wasmReady = false;
 let goInstance = null;
+let readyPromise = null;
+
+async function waitForGoFunctions(timeoutMs = 10000) {
+	const started = Date.now();
+	while (Date.now() - started < timeoutMs) {
+		if (typeof globalThis.generateText === 'function' && typeof globalThis.getTemplates === 'function') {
+			return;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	throw new Error('Go WASM did not register its functions in time');
+}
 
 export async function loadWasm() {
-	if (wasmReady) {
-		console.log('WASM already loaded');
-		return;
-	}
+	if (wasmReady) return;
+	if (readyPromise) return readyPromise;
 
-	console.log('🚀 Starting WASM load...');
+	readyPromise = (async () => {
+		if (typeof Go === 'undefined') {
+			throw new Error('Go constructor not found; wasm_exec.js did not load');
+		}
+
+		goInstance = new Go();
+		const response = await fetch('/main.wasm', { cache: 'no-cache' });
+		if (!response.ok) {
+			throw new Error(`Could not load main.wasm: HTTP ${response.status}`);
+		}
+
+		const module = await WebAssembly.instantiate(await response.arrayBuffer(), goInstance.importObject);
+		// run() starts the Go program (which blocks by design) and resolves when it exits.
+		goInstance.run(module.instance);
+
+		// The Go program registers its JS functions just after startup. Wait for
+		// them so pages do not call undefined globals and fall back to stale UI.
+		await waitForGoFunctions();
+		wasmReady = true;
+	})();
 
 	try {
-		console.log('📋 Checking Go availability:', typeof Go);
-		if (typeof Go === 'undefined') {
-			throw new Error('Go constructor not found');
-		}
-
-		console.log('🔧 Creating Go instance...');
-		goInstance = new Go();
-		console.log('✅ Go instance created:', goInstance);
-		console.log('📦 Import object keys:', Object.keys(goInstance.importObject));
-
-		console.log('📡 Fetching main.wasm...');
-		const wasmResponse = await fetch('/main.wasm');
-		console.log('📊 Response status:', wasmResponse.status, wasmResponse.statusText);
-
-		if (!wasmResponse.ok) {
-			throw new Error(`HTTP ${wasmResponse.status}: ${wasmResponse.statusText}`);
-		}
-
-		console.log('🔄 Converting to ArrayBuffer...');
-		const wasmArrayBuffer = await wasmResponse.arrayBuffer();
-		console.log('📏 WASM size:', wasmArrayBuffer.byteLength, 'bytes');
-
-		console.log('⚡ Instantiating WASM module...');
-		const wasmModule = await WebAssembly.instantiate(wasmArrayBuffer, goInstance.importObject);
-		console.log('✅ WASM instantiated:', wasmModule);
-
-		console.log('🏃 Running Go program...');
-		goInstance.run(wasmModule.instance);
-
-		wasmReady = true;
-		console.log('🎉 WASM fully loaded and running!');
-
-		// Check if functions are available
-		setTimeout(() => {
-			console.log('🔍 Checking global functions:');
-			console.log('- goTest:', typeof globalThis.goTest);
-			console.log(
-				'- Available keys on globalThis containing "go":',
-				Object.keys(globalThis).filter((key) => key.toLowerCase().includes('go'))
-			);
-		}, 100);
+		await readyPromise;
 	} catch (error) {
-		console.error('❌ WASM loading failed at step:', error.message);
-		console.error('🔍 Full error:', error);
-		console.error('📚 Error stack:', error.stack);
+		readyPromise = null;
 		throw error;
 	}
 }
@@ -67,4 +54,5 @@ export function unloadWasm() {
 	}
 	goInstance = null;
 	wasmReady = false;
+	readyPromise = null;
 }

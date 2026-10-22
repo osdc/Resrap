@@ -25,11 +25,24 @@ func TestTemplatesParseAndGenerate(t *testing.T) {
 			if err := tmpl.Load(r); err != nil {
 				t.Fatalf("parse %s: %v", tmpl.Name, err)
 			}
+			var first string
 			for _, seed := range []uint64{1, 7, 42, 99} {
 				out := r.GenerateCompleteWithSeeded(tmpl.Name, "program", seed, 60)
 				if strings.TrimSpace(out) == "" {
 					t.Fatalf("seed %d produced empty output", seed)
 				}
+				if first == "" {
+					first = out
+				} else if out == first {
+					t.Fatalf("seed %d produced identical output", seed)
+				}
+			}
+
+			// The built-in templates are demos, not five-line snippets. At a
+			// realistic budget they should produce a substantial program.
+			out := r.GenerateCompleteWithSeeded(tmpl.Name, "program", 7, 500)
+			if lines := strings.Count(out, "\n"); lines < 20 {
+				t.Fatalf("500-token output is too small: %d lines\n%s", lines, out)
 			}
 		})
 	}

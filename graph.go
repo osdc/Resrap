@@ -22,6 +22,8 @@ const (
 	rx
 	pointer
 	idk
+	loop
+	groupEnd
 )
 
 type syntaxNode struct {
@@ -207,6 +209,19 @@ func (s *syntaxGraph) walk(prng *prng, start string, tokens int, complete bool) 
 		} else if current.typ == rx {
 			result.WriteString(s.regexhandler.GenerateString(s.charmap[current.id], prng))
 			printedTokens++
+		} else if current.typ == loop {
+			// '^' repeats the construct immediately before it until the token
+			// budget is reached. In complete mode the walk then falls through
+			// to whatever follows the loop, so constructs such as a closing
+			// brace are emitted exactly once.
+			if !complete || printedTokens < tokens {
+				target := s.nodeRef[current.pointer]
+				if target == nil {
+					return result.String()
+				}
+				current = target
+				continue
+			}
 		} else if current.typ == pointer {
 			// If the target rule has a word list, emit a word directly and
 			// return to the caller instead of traversing that rule's grammar.

@@ -40,6 +40,12 @@
 				</svg>
 				Try Now
 			</a>
+			<a
+				href="/Templates"
+				class="flex items-center justify-center gap-2 rounded-lg border-2 border-gray-600 px-4 lg:px-6 py-3 font-semibold text-gray-300 transition-all duration-200 hover:border-[#00add8] hover:text-[#00add8]"
+			>
+				Language Templates
+			</a>
 		</div>
 	</div>
 
