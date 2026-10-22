@@ -48,6 +48,46 @@ func TestTemplatesParseAndGenerate(t *testing.T) {
 	}
 }
 
+func TestLangEnum(t *testing.T) {
+	want := []Lang{C, Cpp, Go, Haskell, HTML, Java, JavaScript, Python, Rust, SQL}
+	langs := Langs()
+	if len(langs) != len(want) {
+		t.Fatalf("Langs() returned %d entries, want %d", len(langs), len(want))
+	}
+	for i := range want {
+		if langs[i] != want[i] {
+			t.Fatalf("Langs()[%d] = %q, want %q", i, langs[i], want[i])
+		}
+	}
+
+	for _, lang := range langs {
+		if !lang.Valid() {
+			t.Fatalf("%q should be a valid language", lang)
+		}
+		tmpl, err := lang.Template()
+		if err != nil {
+			t.Fatalf("template for %q: %v", lang, err)
+		}
+		if tmpl.Name != lang.String() {
+			t.Fatalf("template name %q does not match lang %q", tmpl.Name, lang)
+		}
+	}
+
+	r := resrap.NewResrap()
+	if err := Cpp.Load(r); err != nil {
+		t.Fatalf("load Cpp via enum: %v", err)
+	}
+	if err := Load(r, Rust); err != nil {
+		t.Fatalf("load Rust via enum: %v", err)
+	}
+	if err := LoadAs(r, SQL, "database"); err != nil {
+		t.Fatalf("load SQL under custom name: %v", err)
+	}
+	if !Cpp.Valid() || Lang("not-a-language").Valid() {
+		t.Fatal("Valid did not distinguish known and unknown languages")
+	}
+}
+
 func TestGetIsCaseInsensitiveAndAcceptsExtension(t *testing.T) {
 	a := MustGet("CPP.g4")
 	b := MustGet("cpp")

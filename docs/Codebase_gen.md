@@ -22,10 +22,10 @@ Then simply call GenerateCodebase
 	r := resrap.NewResrap()
 
 	// Built-in templates are embedded in the module.
-	if err := templates.Load(r, "sql"); err != nil {
+	if err := templates.Load(r, templates.SQL); err != nil {
 		panic(err)
 	}
-	if err := templates.Load(r, "c"); err != nil {
+	if err := templates.Load(r, templates.C); err != nil {
 		panic(err)
 	}
 

@@ -1,7 +1,8 @@
 // Package templates ships ready-to-use Resrap grammars for common languages.
 //
 // The grammars are embedded in the binary, so they work in normal Go programs
-// and in browser/WASM builds without touching the filesystem.
+// and in browser/WASM builds without touching the filesystem. Languages are
+// available as typed values (Cpp, Rust, Python, ...) or short string names.
 package templates
 
 import (
@@ -25,6 +26,47 @@ type Template struct {
 	Description string
 	// Grammar is the complete ABNF grammar text.
 	Grammar string
+}
+
+// Lang identifies one of the embedded language templates.
+type Lang string
+
+const (
+	C          Lang = "c"
+	Cpp        Lang = "cpp"
+	Go         Lang = "go"
+	Haskell    Lang = "haskell"
+	HTML       Lang = "html"
+	Java       Lang = "java"
+	JavaScript Lang = "js"
+	Python     Lang = "python"
+	Rust       Lang = "rust"
+	SQL        Lang = "sql"
+)
+
+// String returns the short template name, for example "cpp".
+func (l Lang) String() string { return string(l) }
+
+// Valid reports whether l is an embedded template.
+func (l Lang) Valid() bool {
+	_, err := Get(l)
+	return err == nil
+}
+
+// Template returns the grammar and metadata for l.
+func (l Lang) Template() (Template, error) { return Get(l) }
+
+// Load parses l into a Resrap instance under its template name.
+func (l Lang) Load(loader GrammarLoader) error { return Load(loader, l) }
+
+// Langs returns every embedded language, sorted by short name.
+func Langs() []Lang {
+	names := Names()
+	out := make([]Lang, len(names))
+	for i, name := range names {
+		out[i] = Lang(name)
+	}
+	return out
 }
 
 // GrammarLoader is implemented by *resrap.Resrap and *resrap.ResrapMT.
@@ -82,9 +124,9 @@ func List() ([]Template, error) {
 }
 
 // Get returns one template. The name is case-insensitive and may include the
-// ".g4" extension.
-func Get(name string) (Template, error) {
-	key := normalize(name)
+// ".g4" extension. It accepts both strings and Lang values.
+func Get[T ~string](name T) (Template, error) {
+	key := normalize(string(name))
 	body, err := grammars.ReadFile(key + ".g4")
 	if err != nil {
 		return Template{}, fmt.Errorf("templates: unknown template %q (available: %s)", name, strings.Join(Names(), ", "))
@@ -103,7 +145,7 @@ func Get(name string) (Template, error) {
 
 // MustGet is Get for callers that treat a missing built-in template as a
 // programming error.
-func MustGet(name string) Template {
+func MustGet[T ~string](name T) Template {
 	t, err := Get(name)
 	if err != nil {
 		panic(err)
@@ -112,8 +154,9 @@ func MustGet(name string) Template {
 }
 
 // Load parses a template into a Resrap instance under the template name.
-func Load(loader GrammarLoader, name string) error {
-	return LoadAs(loader, name, normalize(name))
+// The name can be a string or a Lang value.
+func Load[T ~string](loader GrammarLoader, name T) error {
+	return LoadAs(loader, name, normalize(string(name)))
 }
 
 // Load parses this template into a Resrap instance under the template name.
@@ -122,7 +165,8 @@ func (t Template) Load(loader GrammarLoader) error {
 }
 
 // LoadAs parses a template into a Resrap instance under a custom grammar name.
-func LoadAs(loader GrammarLoader, name, as string) error {
+// The template name can be a string or a Lang value.
+func LoadAs[T ~string](loader GrammarLoader, name T, as string) error {
 	t, err := Get(name)
 	if err != nil {
 		return err

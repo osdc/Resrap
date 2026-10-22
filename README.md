@@ -64,7 +64,7 @@ float password = 1024.13 - (13.7);
 ## Installation
 
 ```bash
-go get github.com/osdc/resrap@v1.2.0
+go get github.com/osdc/resrap@v1.3.0
 ```
 
 ---
@@ -121,16 +121,18 @@ and in WASM builds:
 import "github.com/osdc/resrap/templates"
 
 rs := resrap.NewResrap()
-if err := templates.Load(rs, "cpp"); err != nil {
+if err := templates.Load(rs, templates.Cpp); err != nil {
 	fmt.Println(err)
 	return
 }
-code := rs.GenerateCompleteWithSeeded("cpp", "program", 42, 500)
+code := rs.GenerateCompleteWithSeeded(templates.Cpp.String(), "program", 42, 500)
 ```
 
-`templates.Names()` lists every name, `templates.Get("cpp")` returns the grammar
-and metadata, and a template can also be loaded under a custom name with
-`templates.LoadAs(rs, "cpp", "C++")`.
+`templates.Langs()` returns the typed language enum, while `templates.Names()`
+lists every short name. `templates.Get(templates.Cpp)` returns the grammar and
+metadata, and a template can also be loaded under a custom name with
+`templates.LoadAs(rs, templates.Cpp, "C++")`. Both enum values and plain strings
+such as `"cpp"` are accepted by the lookup and load helpers.
 
 ### Keywords and word lists
 

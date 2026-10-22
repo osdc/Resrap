@@ -16,7 +16,7 @@ import (
 
 func loadCpp(t *testing.T, r *Resrap) {
 	t.Helper()
-	if err := templates.Load(r, "cpp"); err != nil {
+	if err := templates.Load(r, templates.Cpp); err != nil {
 		t.Fatalf("load cpp template: %v", err)
 	}
 }
