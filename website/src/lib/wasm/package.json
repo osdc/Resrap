@@ -1,0 +1,21 @@
+{
+  "name": "resrap-wasm",
+  "type": "module",
+  "description": "Browser bindings for the resrap-rs generator",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/osdc/Resrap"
+  },
+  "files": [
+    "resrap_wasm_bg.wasm",
+    "resrap_wasm.js",
+    "resrap_wasm.d.ts"
+  ],
+  "main": "resrap_wasm.js",
+  "types": "resrap_wasm.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

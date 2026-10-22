@@ -6,7 +6,11 @@ with [`wasm-pack`](https://rustwasm.github.io/wasm-pack/).
 
 ## Prerequisites
 
-- Node.js 20 or newer
+Production builds only need Node.js 20 or newer because the compiled WASM
+package is checked in under `src/lib/wasm/`.
+
+Rebuilding the WASM package also needs:
+
 - A stable Rust toolchain
 - The WebAssembly target:
 
@@ -36,9 +40,11 @@ only need to rebuild the WASM package:
 npm run build-wasm
 ```
 
-The generated package is written to `src/lib/wasm/` and is ignored by git. The
-Rust bindings live in `src/srcrust/`; they depend on the tagged `resrap-rs`
-release so the website can be built without a sibling checkout.
+The generated package is written to `src/lib/wasm/` and is committed so that
+hosting providers do not need a Rust toolchain. The Rust bindings live in
+`src/srcrust/`; they depend on the tagged `resrap-rs` release so the website can
+be built without a sibling checkout. Run `npm run build-wasm` after changing the
+bindings or updating the `resrap-rs` dependency.
 
 ## Building
 
@@ -46,7 +52,7 @@ release so the website can be built without a sibling checkout.
 npm run build
 ```
 
-This regenerates the WASM package and creates a production build. Preview it
+This uses the checked-in WASM package and creates a production build. Preview it
 with:
 
 ```sh
