@@ -148,8 +148,10 @@ func (n *Node) generateNode(r *Resrap, root string) error {
 			fileName := strings.ReplaceAll(n.Pattern, "*", strconv.Itoa(i))
 			fullPath := filepath.Join(root, fileName)
 
-			// Generate file content using the FileType (e.g., "C", "sql") and TokenCount
-			content := r.GenerateRandom(n.FileType, "program", n.TokenCount)
+			// Generate file content using the FileType (e.g., "C", "sql") and TokenCount.
+			// Complete generation finishes the top-level rule instead of cutting
+			// the file in the middle of a statement.
+			content := r.GenerateComplete(n.FileType, "program", n.TokenCount)
 
 			// Write to file
 			if err := os.WriteFile(fullPath, []byte(content), 0644); err != nil {

@@ -64,7 +64,7 @@ float password = 1024.13 - (13.7);
 ## Installation
 
 ```bash
-go get github.com/ItsArnavSh/Resrap@v0.1.0
+go get github.com/osdc/resrap@v1.1.0
 ```
 
 ---
@@ -75,7 +75,7 @@ go get github.com/ItsArnavSh/Resrap@v0.1.0
 
 	//Resrap with Single threaded
 	rs := resrap.NewResrap()
-	err := rs.ParseGrammarFile("C", "example/C.g4")
+	err := rs.ParseGrammarFile("C", "example/c.g4")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -85,7 +85,7 @@ go get github.com/ItsArnavSh/Resrap@v0.1.0
 
 	//Lets get a multithreaded API set up quick
 	r := resrap.NewResrapMT(20, 1000) //20 worker pool and 1000 wait queue max size
-	err = r.ParseGrammarFile("C", "example/C.g4")
+	err = r.ParseGrammarFile("C", "example/c.g4")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -100,6 +100,57 @@ go get github.com/ItsArnavSh/Resrap@v0.1.0
 	fmt.Println(res.Code)
 ```
 
+### Complete generation
+
+`GenerateRandom` stops exactly at the token budget and can therefore cut output
+in the middle of an expression. For source code that should parse or compile,
+use `GenerateComplete` / `GenerateCompleteWithSeeded`: the budget becomes a soft
+limit and generation stops at the end of the starting rule.
+
+```golang
+code := rs.GenerateCompleteWithSeeded("C", "program", 42, 100)
+```
+
+### Built-in templates
+
+The `templates` package embeds ready-to-use grammars for C, C++, Go, Haskell,
+HTML, Java, JavaScript, Python, Rust and SQL. They work in normal Go programs
+and in WASM builds:
+
+```golang
+import "github.com/osdc/resrap/templates"
+
+rs := resrap.NewResrap()
+if err := templates.Load(rs, "cpp"); err != nil {
+	fmt.Println(err)
+	return
+}
+code := rs.GenerateCompleteWithSeeded("cpp", "program", 42, 500)
+```
+
+`templates.Names()` lists every name, `templates.Get("cpp")` returns the grammar
+and metadata, and a template can also be loaded under a custom name with
+`templates.LoadAs(rs, "cpp", "C++")`.
+
+### Keywords and word lists
+
+Random regex identifiers look like gibberish. Attach readable words to any rule
+with the `@words` grammar directive:
+
+```abnf
+@words identifier = count, total, index, value, result
+program: 'int ' identifier ';\n';
+```
+
+The directive may also be added at runtime:
+
+```golang
+err := rs.AddWords("C", "identifier", []string{"count", "total", "index"})
+```
+
+Every reference to `identifier` now emits one of those words instead of
+expanding the rule. Word-only rules do not need a separate grammar definition.
+
 ### Notes
 
 * **IDs:** You must create unique IDs for each job; results are returned with the ID.
@@ -107,6 +158,18 @@ go get github.com/ItsArnavSh/Resrap@v0.1.0
 * **Why multithreaded?** Efficiently handles **many concurrent jobs**, fully utilizing CPU cores while keeping grammar graphs immutable and lock-free.
 
 > For benchmarks and performance comparisons, see [benchmark-results/Multithreading.md](benchmark-results/Multithreading.md).
+
+### Integration tests
+
+Language-level integration tests generate real source from the embedded C++
+template and validate it with `g++` when the toolchain is installed. The demo
+only generates and writes files; it does not compile them:
+
+```bash
+make test-integration
+go run ./demo/cppdemo -seed 10 -tokens 120
+go run ./demo/cppdemo -template sql -seed 7 -tokens 80 -print
+```
 
 ---
 

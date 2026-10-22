@@ -17,10 +17,19 @@ src/
 
 Then simply call GenerateCodebase
 ```go
+	import "github.com/osdc/resrap/templates"
+
 	r := resrap.NewResrap()
-	r.ParseGrammarFile("sql", "../example/sql.g4")
-	r.ParseGrammarFile("c", "../example/c.g4")
-	r.GenerateCodebase("../example/format.dsl", ".")
-//Errors are ignored for simplicity
-// Be responsible DON'T EVER IGNORE THEM
+
+	// Built-in templates are embedded in the module.
+	if err := templates.Load(r, "sql"); err != nil {
+		panic(err)
+	}
+	if err := templates.Load(r, "c"); err != nil {
+		panic(err)
+	}
+
+	if err := r.GenerateCodebase("../example/format.dsl", "."); err != nil {
+		panic(err)
+	}
 ```

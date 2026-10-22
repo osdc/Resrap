@@ -3,7 +3,10 @@
 // producing endless, realistic-looking snippets.
 package resrap
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 // Resrap is the main accesspoint for singlethreaded uses
 // Pretty Much Collection of graphs which can be generated using parsing grammar
@@ -47,6 +50,46 @@ func (r *Resrap) ParseGrammarFile(name, location string) error {
 	r.languageGraph[name].graph.Normalize()
 
 	return nil
+}
+
+// AddWords attaches a list of words to a rule in a parsed grammar. Any
+// reference to that rule will emit one of the words instead of expanding the
+// rule. This is useful for identifiers, keywords and other "word-like"
+// terminals that look better than random regex output.
+func (r *Resrap) AddWords(name, rule string, words []string) error {
+	l, ok := r.languageGraph[name]
+	if !ok || l.graph == nil {
+		return fmt.Errorf("resrap: grammar %q is not loaded", name)
+	}
+	return l.graph.SetWords(rule, words)
+}
+
+// AddKeywords is an alias for AddWords.
+func (r *Resrap) AddKeywords(name, rule string, words []string) error {
+	return r.AddWords(name, rule, words)
+}
+
+// GenerateComplete generates content but only stops at the boundary of the
+// starting rule once the token budget is reached. Unlike GenerateRandom, this
+// does not cut the output in the middle of a statement or expression, so it is
+// suitable for generating source code that should be parsed or compiled.
+func (r *Resrap) GenerateComplete(name, startingNode string, tokens int) string {
+	prng := newPRNG(0)
+	return r.generateComplete(name, startingNode, &prng, tokens)
+}
+
+// GenerateCompleteWithSeeded is the deterministic variant of GenerateComplete.
+func (r *Resrap) GenerateCompleteWithSeeded(name, startingNode string, seed uint64, tokens int) string {
+	prng := newPRNG(seed)
+	return r.generateComplete(name, startingNode, &prng, tokens)
+}
+
+func (r *Resrap) generateComplete(name, startingNode string, prng *prng, tokens int) string {
+	l, ok := r.languageGraph[name]
+	if !ok || l.graph == nil {
+		return ""
+	}
+	return l.graph.GraphWalkComplete(prng, startingNode, tokens)
 }
 
 // GenerateRandom generates content from the grammar identified by 'name'.

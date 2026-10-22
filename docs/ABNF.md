@@ -77,7 +77,33 @@ a : b+<0.4>;
 
 ---
 
-## 4. Summary
+## 4. Word lists (`@words`)
+
+Random character classes produce random-looking identifiers. A word list lets
+a rule emit readable words instead of expanding its grammar:
+
+```abnf
+@words identifier = count, total, index, value, result
+@words type       = int, long, double
+
+program: type ' ' identifier ';\n';
+```
+
+* The directive is one line and ends at the end of the line.
+* `@keywords` is accepted as an alias for `@words`.
+* Any rule name may be used, including a name that has no rule definition.
+* A reference to that rule emits one word, chosen uniformly.
+* Words can also be attached at runtime with `Resrap.AddWords`.
+
+## 5. Comments and escapes
+
+* `#` and `//` start a line comment.
+* Single-quoted terminals support escapes such as `\n`, `\t`, `\r`, `\\`,
+  `\'` and `\"`.
+* Character classes support ranges (`[a-z0-9_]`) and the common escapes
+  (`[\t ]`, `[0-9\-]`).
+
+## 6. Summary
 
 ABNF extends standard BNF/EBNF with:
 

@@ -4,7 +4,7 @@ program
     : statement^;
 
 statement
-    : selectstmt ;'\n'
+    : selectstmt ';\n'
     | createtablestmt ';\n'
     | insertstmt ';\n' ;
 
@@ -62,7 +62,7 @@ boolean
     | 'FALSE' ;
 
 string
-    : [A-Z0-9_ ] ;
+    : '\'' [a-z] '\'' ;
 
 identifier
     : [a-z] ;

@@ -25,7 +25,7 @@ func parseFile(filename string) ([]string, error) {
 		line := strings.TrimSpace(scanner.Text())
 
 		// skip comment or empty lines
-		if strings.HasPrefix(line, "//") || line == "" {
+		if strings.HasPrefix(line, "//") || strings.HasPrefix(line, "#") || line == "" {
 			continue
 		}
 
@@ -44,6 +44,13 @@ func parseFile(filename string) ([]string, error) {
 		return nil, err
 	}
 
+	// A final statement does not have to end with ';' at the file level; the
+	// grammar parser will report a useful error if it is incomplete. Dropping
+	// it silently made an entire trailing rule disappear.
+	if strings.TrimSpace(current.String()) != "" {
+		statements = append(statements, strings.TrimSpace(current.String()))
+	}
+
 	return statements, nil
 }
 
@@ -58,15 +65,14 @@ func (l *lang) GetGraph() *syntaxGraph {
 	return l.graph
 }
 func (l *lang) ParserFile(filename string) error {
-	lines, err := parseFile(filename)
+	// Read the file as a whole instead of reassembling statements line by
+	// line. The scanner understands comments and @words directives, and this
+	// avoids losing a trailing rule that has no final semicolon.
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return err
 	}
-	gb := newGraphBuilder()
-	content := strings.Join(lines, "")
-	err = gb.startGeneration(content)
-	l.graph = &gb.pars.graph
-	return err
+	return l.ParserString(string(data))
 }
 
 func (l *lang) ParserString(data string) error {

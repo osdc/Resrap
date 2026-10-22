@@ -15,6 +15,7 @@ type parser struct {
 	defCheck     map[uint32]bool    // To check if a function exists
 	charmap      map[uint32]string  // To store the print values corresponding to ids
 	interRep     map[uint32][]token // Intermediate Representation
+	words        map[string][]string
 	tokens       []token
 	errors       []error
 	index        int
@@ -33,6 +34,7 @@ func newParser() parser {
 		charmap:      make(map[uint32]string),
 		interRep:     make(map[uint32][]token),
 		revNameMap:   make(map[uint32]string),
+		words:        make(map[string][]string),
 		tokens:       []token{},
 		errors:       []error{},
 		graph:        newSyntaxGraph(),
@@ -49,14 +51,31 @@ func (i *parser) getFuncPtr() uint32 {
 	return i.funcPtr
 }
 func (i *parser) curr() token {
+	if i.index < 0 || i.index >= len(i.tokens) {
+		return token{typ: padding}
+	}
 	return i.tokens[i.index]
 }
+
+func (i *parser) errAt(t token, format string, args ...any) {
+	msg := fmt.Sprintf(format, args...)
+	i.errors = append(i.errors, fmt.Errorf("line %d:%d: %s", t.line, t.col, msg))
+}
+
+func (i *parser) errHere(format string, args ...any) {
+	i.errAt(i.curr(), format, args...)
+}
+
 func (i *parser) match(word tokenType, expec []tokenType) bool {
 	return slices.Contains(expec, word)
 }
 func (i *parser) expect(expected []tokenType, errmsg string) bool {
+	if i.index >= len(i.tokens) {
+		i.errors = append(i.errors, fmt.Errorf("%s (unexpected end of grammar)", errmsg))
+		return true
+	}
 	if !i.match(i.curr().typ, expected) {
-		i.errors = append(i.errors, fmt.Errorf("%s", errmsg))
+		i.errHere("%s", errmsg)
 		i.index++
 		return true
 	}
@@ -94,29 +113,29 @@ func (i *parser) parseSubject() {
 	}
 	id := i.getIndex(subject.text)
 	if i.defCheck[id] { // If map is already set to true
-		i.errors = append(i.errors, fmt.Errorf("multiple definitions for %s", subject.text))
+		i.errAt(subject, "multiple definitions for %s", subject.text)
 	}
 
 	i.defCheck[id] = true
 	startnode := i.graph.GetNode(uint32(start), start)
 	startnode.AddEdgeNext(&i.graph, i.graph.GetNode(id, header), 1)
-	// Send here only if current is col else crash code
-	if i.match(i.tokens[i.index-1].typ, []tokenType{colon}) {
-		i.parseRules(id, false)
-	} else {
-		return
-	}
+
+	// Every rule gets its own end node. Sharing one global end node made the
+	// '^' operator jump between unrelated rules.
+	endNode := i.graph.GetNode(i.getFuncPtr(), end)
+	i.graph.ruleEnds[id] = endNode.id
+
+	i.parseRules(id, false, endNode)
 }
 
-func (i *parser) parseRules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode) {
+func (i *parser) parseRules(root uint32, isDeep bool, endNode *syntaxNode) (*syntaxNode, *syntaxNode) {
 	rootnode := i.graph.GetNode(root, idk)
 	bufferNode := rootnode
-	endNode := i.graph.GetNode(uint32(end), end)
-	var startBuffer *syntaxNode
-	if isDeep { // Means called from a backet so a pseudo end branch
+	if endNode == nil {
 		endNode = i.graph.GetNode(i.getFuncPtr(), end)
 	}
-	for {
+	var startBuffer *syntaxNode
+	for i.index < len(i.tokens) {
 		switch i.curr().typ {
 		case identifier:
 			// Means its a reference to a different Subject(presumably)
@@ -148,13 +167,25 @@ func (i *parser) parseRules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode)
 			bufferNode = jumpNode
 		case colon:
 			// Colon is not allowed here
-			i.errors = append(i.errors, fmt.Errorf("missing semicolon"))
+			i.errHere("missing semicolon before ':'")
 			return nil, nil
 		case maybe:
+			if startBuffer == nil {
+				i.errHere("'?' has nothing to repeat")
+				return nil, nil
+			}
 			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.getProbability()) // An option to skip to the end
 		case oneormore:
+			if startBuffer == nil {
+				i.errHere("'+' has nothing to repeat")
+				return nil, nil
+			}
 			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.getProbability()) // An option to go to the start
 		case anyno:
+			if startBuffer == nil {
+				i.errHere("'*' has nothing to repeat")
+				return nil, nil
+			}
 			startBuffer.AddEdgeNext(&i.graph, bufferNode, 1-i.getProbability()) // Well both of them combined
 			bufferNode.AddEdgeNext(&i.graph, startBuffer, i.getProbability())
 		case option:
@@ -165,40 +196,72 @@ func (i *parser) parseRules(root uint32, isDeep bool) (*syntaxNode, *syntaxNode)
 		case padding:
 			bufferNode.AddEdgeNext(&i.graph, endNode, 1)
 			if isDeep {
-				i.errors = append(i.errors, fmt.Errorf("stray '('"))
+				i.errHere("unexpected ';' inside group")
+				i.index++
+				return nil, nil
 			}
 			i.index++
 			return nil, nil // End of this statement
 		case bracopen:
 			i.index++
-			startBuffer, bufferNode = i.parseRules(bufferNode.id, true)
+			startBuffer, bufferNode = i.parseRules(bufferNode.id, true, nil)
+			if startBuffer == nil || bufferNode == nil {
+				return nil, nil
+			}
 		case bracclose:
 			if isDeep {
 				bufferNode.AddEdgeNext(&i.graph, endNode, 1)
 				return rootnode, endNode
 			}
-			i.errors = append(i.errors, fmt.Errorf("stray ')' found"))
+			i.errHere("stray ')' found")
+			i.index++
+			return nil, nil
 		case infinite:
+			if startBuffer == nil {
+				i.errHere("'^' has nothing to loop")
+				return nil, nil
+			}
 			// Now at the end it will loop back to this case
 			endNode.AddEdgeNext(&i.graph, startBuffer, 1)
+		case probability:
+			i.errHere("probability '<...>' must follow a token")
+			return nil, nil
 		default:
-			continue
+			i.errHere("unexpected token %q", i.curr().text)
+			i.index++
+			return nil, nil
 		}
 		i.index++
 	}
+	if isDeep {
+		i.errors = append(i.errors, fmt.Errorf("unterminated '(' in grammar"))
+	} else {
+		i.errors = append(i.errors, fmt.Errorf("unexpected end of grammar: missing ';'"))
+	}
+	return nil, nil
 }
 func (i *parser) getProbability() float32 {
 	i.index++
+	if i.index >= len(i.tokens) {
+		i.index-- // Reverting
+		return 0.5
+	}
 	if i.tokens[i.index].typ == probability {
 		num := i.tokens[i.index].text
 		numf, err := strconv.ParseFloat(num, 32)
 		if err != nil {
+			i.errAt(i.tokens[i.index], "invalid probability %q: %v", num, err)
 			i.index--
-			i.errors = append(i.errors, err)
 			return 0
 		}
 		if numf < 0 {
-			i.errors = append(i.errors, fmt.Errorf("negative probability found"))
+			i.errAt(i.tokens[i.index], "negative probability found")
+			i.index--
+			return 0
+		}
+		if math.IsNaN(numf) || math.IsInf(numf, 0) {
+			i.errAt(i.tokens[i.index], "invalid probability %q", num)
+			i.index--
 			return 0
 		}
 		return float32(numf)
@@ -206,13 +269,28 @@ func (i *parser) getProbability() float32 {
 	i.index-- // Reverting
 	return 0.5
 }
+
+// attachWords resolves @words rule names to graph ids.
+func (i *parser) attachWords() {
+	for name, words := range i.words {
+		id, ok := i.nameMap[name]
+		if !ok {
+			// A word-only rule does not need a grammar definition. Give it an
+			// id so it can be generated like any other rule.
+			id = i.getIndex(name)
+			i.defCheck[id] = true
+		}
+		i.graph.words[id] = append([]string(nil), words...)
+	}
+}
+
 func (i *parser) ValidateGraph() []error {
 	if len(i.errors) > 0 {
 		return nil
 	}
 	var errors []error
 	for key, val := range i.defCheck {
-		if !val {
+		if !val && len(i.graph.words[key]) == 0 {
 			errors = append(errors, fmt.Errorf("definition of '%s' not found", i.revNameMap[key]))
 		}
 	}

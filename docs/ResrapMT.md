@@ -116,6 +116,20 @@ resrapMT.GenerateWithSeeded("job-101", "C", "program", 12345, 100)
 
 > Results appear on `CodeChannel` like `GenerateRandom`.
 
+### `GenerateComplete` / `GenerateCompleteWithSeeded`
+
+Completeness-aware variants of the two methods above. They stop at the boundary
+of the starting rule instead of truncating generated source mid-statement.
+
+### `AddWords(name, rule string, words []string) error`
+
+Attaches a word list to a rule in a loaded grammar. See the single-threaded
+documentation for details.
+
+> Both `Generate*` methods return `error` and report `ErrShutDown` when called
+> after `ShutDownResrap`. Results are buffered internally, so submitting jobs
+> faster than you read them does not deadlock.
+
 ---
 
 ### `StartResrap()`

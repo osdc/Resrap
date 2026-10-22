@@ -23,7 +23,7 @@ func (r *regexer) GenerateString(regex string, prn *prng) string {
 	if !ok || len(state.cumuFreq) == 0 || len(state.options) == 0 {
 		return ""
 	}
-	size := prn.RandomInt(3, 4) // generate a size between 3 and 7
+	size := prn.RandomInt(3, 8) // generate a size between 3 and 7
 	var sb strings.Builder
 
 	for i := 0; i < size; i++ {
@@ -71,7 +71,12 @@ func (r *regexer) ExpandClass(class string) []rune {
 	runes := []rune(class)
 
 	for i := 0; i < len(runes); i++ {
-		if i+2 < len(runes) && runes[i+1] == '-' {
+		if runes[i] == '\\' && i+1 < len(runes) {
+			chars = append(chars, decodeClassEscape(runes[i+1]))
+			i++
+			continue
+		}
+		if i+2 < len(runes) && runes[i+1] == '-' && runes[i+2] != '\\' {
 			// range a-z
 			for c := runes[i]; c <= runes[i+2]; c++ {
 				chars = append(chars, c)
@@ -84,10 +89,34 @@ func (r *regexer) ExpandClass(class string) []rune {
 	return chars
 }
 
+func decodeClassEscape(r rune) rune {
+	switch r {
+	case 'n':
+		return '\n'
+	case 't':
+		return '\t'
+	case 'r':
+		return '\r'
+	default:
+		// \], \-, \^ and friends mean the literal character.
+		return r
+	}
+}
+
 // Bias returns an integer weight for a rune based on usage frequency
 func (r *regexer) Bias(c rune) int {
+	// Uppercase letters: slightly less likely than lowercase. Check this
+	// before the lowercase switch, otherwise 'E' matches the 'e' case.
+	if unicode.IsUpper(c) {
+		b := r.Bias(unicode.ToLower(c)) / 2
+		if b < 1 {
+			b = 1
+		}
+		return b
+	}
+
 	// Lowercase letters: frequency in English words (roughly)
-	switch unicode.ToLower(c) {
+	switch c {
 	case 'e':
 		return 12
 	case 'a', 'i', 'o':
@@ -100,11 +129,6 @@ func (r *regexer) Bias(c rune) int {
 		return 3
 	case 'j', 'x', 'q', 'z':
 		return 1
-	}
-
-	// Uppercase letters: slightly less likely than lowercase
-	if unicode.IsUpper(c) {
-		return r.Bias(unicode.ToLower(c)) / 2
 	}
 
 	// Digits: moderately common

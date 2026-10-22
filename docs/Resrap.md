@@ -109,6 +109,29 @@ code := resrap.GenerateWithSeeded("C", "program", 12345, 100)
 * `tokens` — number of tokens to generate.
 * **Returns:** generated content as a string.
 
+### `GenerateComplete(name, starting_node string, tokens int) string`
+
+Like `GenerateRandom`, but the token budget is a soft limit: generation stops at
+the boundary of the starting rule instead of cutting output mid-statement.
+
+```go
+code := resrap.GenerateComplete("C", "program", 100)
+```
+
+### `GenerateCompleteWithSeeded(name, starting_node string, seed uint64, tokens int) string`
+
+Deterministic variant of `GenerateComplete`.
+
+### `AddWords(name, rule string, words []string) error`
+
+Attaches a word list to a rule. References to that rule emit one of the words
+instead of expanding its grammar. This is useful for readable identifiers and
+language keywords.
+
+```go
+err := resrap.AddWords("C", "identifier", []string{"count", "total", "index"})
+```
+
 ---
 
 ## Usage Example

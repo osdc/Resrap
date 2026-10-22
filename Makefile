@@ -1,10 +1,13 @@
-.PHONY: build test lint vet fmt coverage cover-html clean
+.PHONY: build test test-integration lint vet fmt coverage cover-html clean
 
 build:
 	go build ./...
 
 test:
 	go test ./... -count=1
+
+test-integration:
+	go test -tags=integration ./... -count=1 -v
 
 lint:
 	golangci-lint run ./...

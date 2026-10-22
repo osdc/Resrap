@@ -1,39 +1,86 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"syscall/js"
+	"time"
 
-	"github.com/osdc/resrap/resrap"
+	"github.com/osdc/resrap"
+	"github.com/osdc/resrap/templates"
 )
 
+type browserTemplate struct {
+	Name        string `json:"name"`
+	Language    string `json:"language"`
+	Description string `json:"description"`
+	Grammar     string `json:"grammar"`
+}
+
 func main() {
-	println("Go WASM: Starting with Go 1.24.4...")
+	println("Resrap WASM starting")
 	par := resrap.NewResrap()
 
-	// Your custom function
 	js.Global().Set("generateText", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
 		if len(args) < 4 {
-			return "Error: Need 4 parameters: grammar, startpoint, seed, tokenlen"
+			return "Error: need grammar, startpoint, seed, tokenlen"
 		}
-
 		grammar := args[0].String()
 		startpoint := args[1].String()
-		seed := args[2].Int()
+		seed := browserSeed(args[2].Int())
 		tokenlen := args[3].Int()
-
-		par.ParseGrammar("sample", grammar)
-
-		res := par.GenerateWithSeeded("sample", startpoint, uint64(seed), tokenlen)
-		// Your logic here - for now just returning a formatted string
-		result := res
-		fmt.Println(res)
-		return result
+		if tokenlen <= 0 {
+			return "Error: tokenlen must be greater than zero"
+		}
+		if err := par.ParseGrammar("sample", grammar); err != nil {
+			return "Error: " + err.Error()
+		}
+		return par.GenerateCompleteWithSeeded("sample", startpoint, seed, tokenlen)
 	}))
 
-	// Keep the existing test functions
+	js.Global().Set("generateTemplate", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		if len(args) < 4 {
+			return "Error: need template, startpoint, seed, tokenlen"
+		}
+		tmpl, err := templates.Get(args[0].String())
+		if err != nil {
+			return "Error: " + err.Error()
+		}
+		seed := browserSeed(args[2].Int())
+		tokenlen := args[3].Int()
+		if tokenlen <= 0 {
+			return "Error: tokenlen must be greater than zero"
+		}
+		if err := tmpl.Load(par); err != nil {
+			return "Error: " + err.Error()
+		}
+		return par.GenerateCompleteWithSeeded(tmpl.Name, args[1].String(), seed, tokenlen)
+	}))
+
+	js.Global().Set("getTemplates", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
+		list, err := templates.List()
+		if err != nil {
+			return "[]"
+		}
+		out := make([]browserTemplate, 0, len(list))
+		for _, tmpl := range list {
+			out = append(out, browserTemplate{
+				Name:        tmpl.Name,
+				Language:    tmpl.Language,
+				Description: tmpl.Description,
+				Grammar:     tmpl.Grammar,
+			})
+		}
+		body, err := json.Marshal(out)
+		if err != nil {
+			fmt.Println("marshal templates:", err)
+			return "[]"
+		}
+		return string(body)
+	}))
+
 	js.Global().Set("goTest", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
-		return "Hello from Go 1.24.4 WASM!"
+		return "Hello from Resrap WASM!"
 	}))
 
 	js.Global().Set("goAdd", js.FuncOf(func(this js.Value, args []js.Value) interface{} {
@@ -43,8 +90,14 @@ func main() {
 		return args[0].Int() + args[1].Int()
 	}))
 
-	println("Go WASM: All functions registered successfully")
-
-	// Keep the program running
+	println("Resrap WASM ready")
 	<-make(chan bool)
+}
+
+// browserSeed treats zero as "pick a random seed", matching the UI hint.
+func browserSeed(n int) uint64 {
+	if n == 0 {
+		return uint64(time.Now().UnixNano())
+	}
+	return uint64(n)
 }
