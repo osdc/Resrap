@@ -205,4 +205,4 @@ See [docs/ABNF.md](docs/ABNF.md) for full syntax and examples.
 
 ## Ports in other languages
 
-- Beta version of Rust port with a basic implementation can be found at docs.rs/resrap-rs
+- The interactive website runs the Rust port compiled to WebAssembly: https://github.com/osdc/resrap-rs

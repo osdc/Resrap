@@ -1,38 +1,57 @@
-# sv
+# Resrap website
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+The interactive Resrap site and playground. The browser generator is the Rust
+[`resrap-rs`](https://github.com/osdc/resrap-rs) crate compiled to WebAssembly
+with [`wasm-pack`](https://rustwasm.github.io/wasm-pack/).
 
-## Creating a project
+## Prerequisites
 
-If you're seeing this, you've probably already done this step. Congrats!
+- Node.js 20 or newer
+- A stable Rust toolchain
+- The WebAssembly target:
 
 ```sh
-# create a new project in the current directory
-npx sv create
+rustup target add wasm32-unknown-unknown
+```
 
-# create a new project in my-app
-npx sv create my-app
+- `wasm-pack`:
+
+```sh
+cargo install wasm-pack
 ```
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Install the JavaScript dependencies, then start the dev server:
 
 ```sh
+npm install
 npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
 ```
 
-## Building
+`npm run dev` builds the Rust WASM package first and then starts Vite. If you
+only need to rebuild the WASM package:
 
-To create a production version of your app:
+```sh
+npm run build-wasm
+```
+
+The generated package is written to `src/lib/wasm/` and is ignored by git. The
+Rust bindings live in `src/srcrust/`; they depend on the tagged `resrap-rs`
+release so the website can be built without a sibling checkout.
+
+## Building
 
 ```sh
 npm run build
 ```
 
-You can preview the production build with `npm run preview`.
+This regenerates the WASM package and creates a production build. Preview it
+with:
 
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+```sh
+npm run preview
+```
+
+> Deployment targets may need a SvelteKit adapter other than `adapter-auto`.
+> See the [SvelteKit adapter docs](https://svelte.dev/docs/kit/adapters).

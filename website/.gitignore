@@ -21,3 +21,7 @@ Thumbs.db
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Generated Rust WASM package
+src/lib/wasm/
+src/srcrust/target/

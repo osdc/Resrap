@@ -1,6 +1,6 @@
 <script>
 	const githubUrl = 'https://github.com/osdc/Resrap';
-	const pkgUrl = 'https://pkg.go.dev/github.com/osdc/resrap';
+	const pkgUrl = 'https://docs.rs/resrap-rs/latest/resrap_rs/';
 </script>
 
 <div class="flex h-full flex-col justify-center text-white">
@@ -77,7 +77,7 @@
 					d="M6 10.5a.75.75 0 01.75-.75h2.5a.75.75 0 010 1.5h-2.5A.75.75 0 016 10.5zM6 12.75a.75.75 0 01.75-.75h6.5a.75.75 0 010 1.5h-6.5a.75.75 0 01-.75-.75z"
 				/>
 			</svg>
-			pkg.go.dev Documentation
+			docs.rs Documentation
 		</a>
 	</div>
 </div>

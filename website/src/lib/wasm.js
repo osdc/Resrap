@@ -1,58 +1,52 @@
-import './wasm_exec.js';
+import init, {
+	generate_template,
+	generate_text,
+	get_templates
+} from './wasm/resrap_wasm.js';
 
-let wasmReady = false;
-let goInstance = null;
 let readyPromise = null;
 
-async function waitForGoFunctions(timeoutMs = 10000) {
-	const started = Date.now();
-	while (Date.now() - started < timeoutMs) {
-		if (typeof globalThis.generateText === 'function' && typeof globalThis.getTemplates === 'function') {
-			return;
-		}
-		await new Promise((resolve) => setTimeout(resolve, 25));
+/**
+ * Treat a zero seed as "pick a fresh one", matching the playground hint.
+ * The generated value is kept below Number.MAX_SAFE_INTEGER so it survives
+ * the trip into Rust's u64 seed argument without precision loss.
+ */
+function resolveSeed(seed) {
+	if (seed !== 0) return seed;
+
+	const random = new Uint32Array(1);
+	if (globalThis.crypto?.getRandomValues) {
+		globalThis.crypto.getRandomValues(random);
+	} else {
+		random[0] = Math.floor(Math.random() * 0xffffffff);
 	}
-	throw new Error('Go WASM did not register its functions in time');
+	return Date.now() * 1000 + (random[0] % 1000);
 }
 
-export async function loadWasm() {
-	if (wasmReady) return;
-	if (readyPromise) return readyPromise;
-
-	readyPromise = (async () => {
-		if (typeof Go === 'undefined') {
-			throw new Error('Go constructor not found; wasm_exec.js did not load');
-		}
-
-		goInstance = new Go();
-		const response = await fetch('/main.wasm', { cache: 'no-cache' });
-		if (!response.ok) {
-			throw new Error(`Could not load main.wasm: HTTP ${response.status}`);
-		}
-
-		const module = await WebAssembly.instantiate(await response.arrayBuffer(), goInstance.importObject);
-		// run() starts the Go program (which blocks by design) and resolves when it exits.
-		goInstance.run(module.instance);
-
-		// The Go program registers its JS functions just after startup. Wait for
-		// them so pages do not call undefined globals and fall back to stale UI.
-		await waitForGoFunctions();
-		wasmReady = true;
-	})();
-
-	try {
-		await readyPromise;
-	} catch (error) {
-		readyPromise = null;
-		throw error;
+export function loadWasm() {
+	if (!readyPromise) {
+		readyPromise = init()
+			.then(() => undefined)
+			.catch((error) => {
+				readyPromise = null;
+				throw error;
+			});
 	}
+	return readyPromise;
+}
+
+export function generateText(grammar, startpoint, seed, tokenlen) {
+	return generate_text(grammar, startpoint, resolveSeed(seed), tokenlen);
+}
+
+export function generateTemplate(template, startpoint, seed, tokenlen) {
+	return generate_template(template, startpoint, resolveSeed(seed), tokenlen);
+}
+
+export function getTemplates() {
+	return get_templates();
 }
 
 export function unloadWasm() {
-	if (goInstance && goInstance.exit) {
-		goInstance.exit();
-	}
-	goInstance = null;
-	wasmReady = false;
-	readyPromise = null;
+	// wasm-bindgen owns a single module instance for the page lifetime.
 }

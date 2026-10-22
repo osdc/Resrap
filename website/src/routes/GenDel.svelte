@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
-	import { loadWasm } from '$lib/wasm.js';
+	import { loadWasm, generateText } from '$lib/wasm.js';
 	import { samplegrammer } from '$lib/template';
 
 	import tokyoNight from 'svelte-highlight/styles/tokyo-night-dark';
@@ -47,7 +47,7 @@
 	}
 
 	function generateNewText() {
-		if (isGenerating || isTyping || !globalThis.generateText) return;
+		if (isGenerating || isTyping) return;
 
 		isGenerating = true;
 		generationCount++;
@@ -55,7 +55,7 @@
 		const startTime = performance.now();
 
 		try {
-			currentGeneratedText = globalThis.generateText(grammar, startpoint, 0, tokenlen);
+			currentGeneratedText = generateText(grammar, startpoint, 0, tokenlen);
 
 			const endTime = performance.now();
 			executionTime = endTime - startTime;
@@ -137,7 +137,6 @@
 					{#if displayText.length === 0 && !isTyping}
 						<div class="absolute inset-0 flex items-center justify-center text-gray-500">
 							<div class="text-center">
-								<div class="mb-2 text-3xl lg:text-4xl">⚡</div>
 								<p class="text-sm lg:text-base">Waiting for generation...</p>
 							</div>
 						</div>

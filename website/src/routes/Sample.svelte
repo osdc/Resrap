@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { loadWasm } from '$lib/wasm.js';
+	import { loadWasm, generateText } from '$lib/wasm.js';
 	import { samplegrammer } from '$lib/template';
 
 	let result = '';
@@ -27,34 +27,28 @@
 	});
 
 	function callGenerateText() {
-		if (globalThis.generateText) {
-			isGenerating = true;
+		isGenerating = true;
 
-			const startTime = performance.now();
+		const startTime = performance.now();
 
-			try {
-				result = globalThis.generateText(grammar, startpoint, seed, tokenlen);
+		try {
+			result = generateText(grammar, startpoint, seed, tokenlen);
 
-				const endTime = performance.now();
-				executionTime = endTime - startTime;
+			const endTime = performance.now();
+			executionTime = endTime - startTime;
 
-				tokensGenerated = result
-					.trim()
-					.split(/\s+/)
-					.filter((token) => token.length > 0).length;
+			tokensGenerated = result
+				.trim()
+				.split(/\s+/)
+				.filter((token) => token.length > 0).length;
 
-				lastGeneratedAt = new Date().toLocaleTimeString();
-			} catch (error) {
-				result = '❌ Error generating text: ' + (error as Error).message;
-				executionTime = 0;
-				tokensGenerated = 0;
-			} finally {
-				isGenerating = false;
-			}
-		} else {
-			result = '⚠️ generateText function not found';
+			lastGeneratedAt = new Date().toLocaleTimeString();
+		} catch (error) {
+			result = '❌ Error generating text: ' + (error as Error).message;
 			executionTime = 0;
 			tokensGenerated = 0;
+		} finally {
+			isGenerating = false;
 		}
 	}
 
@@ -172,7 +166,6 @@
 							{#if !result && !isGenerating}
 								<div class="absolute inset-0 flex items-center justify-center text-gray-500">
 									<div class="text-center">
-										<div class="mb-2 text-2xl lg:text-3xl">⚡</div>
 										<p class="text-sm lg:text-base">Click Generate to see results</p>
 									</div>
 								</div>
@@ -217,7 +210,7 @@
 
 							<div class="mt-3 border-t border-gray-700 pt-3">
 								<div class="text-center text-xs text-gray-500">
-									🚀 Powered by Go WASM running in your browser
+									🚀 Powered by Rust WASM running in your browser
 								</div>
 							</div>
 						</div>

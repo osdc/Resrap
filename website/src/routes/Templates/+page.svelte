@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { loadWasm } from '$lib/wasm.js';
+	import { loadWasm, getTemplates, generateTemplate } from '$lib/wasm.js';
 
 	import Highlight from 'svelte-highlight';
 	import tokyoNight from 'svelte-highlight/styles/tokyo-night-dark';
@@ -53,11 +53,8 @@
 	onMount(async () => {
 		try {
 			await loadWasm();
-			if (!globalThis.getTemplates || !globalThis.generateTemplate) {
-				throw new Error('WASM template functions are unavailable');
-			}
 
-			templates = JSON.parse(globalThis.getTemplates());
+			templates = JSON.parse(getTemplates());
 			selectedName = templates.find((template) => template.name === 'cpp')?.name ?? templates[0]?.name ?? '';
 			selectTemplate();
 			status = 'ready';
@@ -73,10 +70,10 @@
 	}
 
 	function generateSelected() {
-		if (!globalThis.generateTemplate || !selectedTemplate) return;
+		if (!selectedTemplate) return;
 
 		isGenerating = true;
-		output = globalThis.generateTemplate(selectedTemplate.name, 'program', seed, tokens);
+		output = generateTemplate(selectedTemplate.name, 'program', seed, tokens);
 		isGenerating = false;
 	}
 
@@ -100,7 +97,7 @@
 		<header class="mt-5 mb-6">
 			<h1 class="text-2xl font-bold text-[#00add8] lg:text-4xl">Built-in language templates</h1>
 			<p class="mt-2 max-w-3xl text-sm text-gray-400 lg:text-base">
-				These grammars are embedded in the Go module and served through WASM. Choose a language
+				These grammars are embedded in the Rust crate and served through WASM. Choose a language
 				and each seed builds a different, complete program with the language's core constructs.
 			</p>
 		</header>

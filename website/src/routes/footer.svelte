@@ -1,6 +1,6 @@
 <script>
 	const githubUrl = 'https://github.com/osdc/Resrap';
-	const pkgUrl = 'https://pkg.go.dev/github.com/osdc/resrap';
+	const pkgUrl = 'https://docs.rs/resrap-rs/latest/resrap_rs/';
 	const osdcGithubUrl = 'https://github.com/osdc';
 	const osdcWebUrl = 'https://osdc.dev';
 </script>
@@ -37,7 +37,7 @@
 				rel="noopener noreferrer"
 				class="text-gray-400 transition-colors hover:text-[#00add8]"
 			>
-				pkg.go.dev
+				docs.rs
 			</a>
 			<a
 				href={osdcWebUrl}
@@ -56,12 +56,12 @@
 				OSDC GitHub
 			</a>
 			<a
-				href="https://golang.org"
+				href="https://www.rust-lang.org"
 				target="_blank"
 				rel="noopener noreferrer"
 				class="text-gray-400 transition-colors hover:text-[#00add8]"
 			>
-				Go Language
+				Rust Language
 			</a>
 		</div>
 	</div>
